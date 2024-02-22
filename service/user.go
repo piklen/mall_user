@@ -271,21 +271,21 @@ func (service *Server) UserLogin(ctx context.Context, in *pb.UserRegisterRequest
 //	if err != nil {
 //		log.Fatal("JSON marshaling failed: ", err)
 //	}
-//	dataMap := make(map[string]interface{})
-//	value := reflect.ValueOf(p)
-//	for i := 0; i < value.NumField(); i++ {
-//		fieldName := value.Type().Field(i).Name
-//		fieldValue := value.Field(i).Interface()
-//		dataMap[fieldName] = fieldValue
-//	}
-//	dataMap = map[string]interface{}{
-//		"User":  serializer.BuildUser(user),
-//		"Token": token,
-//	}
-//	spb, err := structpb.NewStruct(dataMap)
-//	if err != nil {
-//		log.Fatal("Failed to convert struct to google.protobuf.Struct: ", err)
-//	}
+//	//dataMap := make(map[string]interface{})
+//	//value := reflect.ValueOf(p)
+//	//for i := 0; i < value.NumField(); i++ {
+//	//	fieldName := value.Type().Field(i).Name
+//	//	fieldValue := value.Field(i).Interface()
+//	//	dataMap[fieldName] = fieldValue
+//	//}
+//	//dataMap = map[string]interface{}{
+//	//	"User":  serializer.BuildUser(user),
+//	//	"Token": token,
+//	//}
+//	//spb, err := structpb.NewStruct(dataMap)
+//	//if err != nil {
+//	//	log.Fatal("Failed to convert struct to google.protobuf.Struct: ", err)
+//	//}
 //	//p := serializer.TokenData{User: serializer.BuildUser(user), Token: token}
 //	//// 将结构体转换为map[string]interface{}
 //	//dataMap := make(map[string]interface{})
@@ -302,9 +302,9 @@ func (service *Server) UserLogin(ctx context.Context, in *pb.UserRegisterRequest
 //	//}
 //	//}
 //	return &pb.CommonResponse{
-//		StatusCode:       int64(code),
-//		Message:          e.GetMsg(code),
-//		ResponseDataJson: spb,
-//		ResponseData:     string(jsonString),
+//		StatusCode: int64(code),
+//		Message:    e.GetMsg(code),
+//		//ResponseDataJson: spb,
+//		ResponseData: string(jsonString),
 //	}, nil
 //}
