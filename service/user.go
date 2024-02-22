@@ -4,6 +4,7 @@ import (
 	"context"
 	"encoding/json"
 	pb "github.com/piklen/pb/user"
+	"google.golang.org/protobuf/types/known/structpb"
 	"log"
 	"user/dao"
 	"user/model"
@@ -114,9 +115,18 @@ func (service *Server) UserLogin(ctx context.Context, in *pb.UserRegisterRequest
 	if err != nil {
 		log.Fatal("JSON marshaling failed: ", err)
 	}
+	dataMap := map[string]interface{}{
+		"User":  serializer.BuildUser(user),
+		"Token": token,
+	}
+	spb, err := structpb.NewStruct(dataMap)
+	if err != nil {
+		log.Fatal("Failed to convert struct to google.protobuf.Struct: ", err)
+	}
 	return &pb.CommonResponse{
-		StatusCode:   int64(code),
-		Message:      e.GetMsg(code),
-		ResponseData: string(jsonString),
+		StatusCode:       int64(code),
+		Message:          e.GetMsg(code),
+		ResponseDataJson: spb,
+		ResponseData:     string(jsonString),
 	}, nil
 }
