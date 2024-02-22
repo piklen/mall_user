@@ -2,7 +2,6 @@ package service
 
 import (
 	"context"
-	"encoding/json"
 	pb "github.com/piklen/pb/user"
 	"google.golang.org/protobuf/types/known/structpb"
 	"log"
@@ -11,6 +10,7 @@ import (
 	"user/pkg/e"
 	"user/pkg/util"
 	"user/serializer"
+	//"user/serializer"
 )
 
 type Server struct {
@@ -74,14 +74,97 @@ func (s *Server) RegisterUser(ctx context.Context, in *pb.UserRegisterRequest) (
 	}, nil
 }
 
-// Login 用户登陆函数
+// // Login 用户登陆函数
+//
+//	func (service *Server) UserLogin(ctx context.Context, in *pb.UserRegisterRequest) (*pb.CommonResponse, error) {
+//		var user *model.User
+//		code := e.Success
+//		userDao := dao.NewUserDao(ctx)
+//
+//		// 判断用户是否存在
+//		user, exist, err := userDao.ExistOrNotByUserName(in.UserName)
+//		if err != nil {
+//			code = e.ErrorDatabase
+//			return &pb.CommonResponse{
+//				StatusCode:   int64(code),
+//				Message:      e.GetMsg(code),
+//				ResponseData: "数据库查询错误",
+//			}, nil
+//		}
+//		if !exist {
+//			code = e.ErrorExistUserNotFound
+//			return &pb.CommonResponse{
+//				StatusCode:   int64(code),
+//				Message:      e.GetMsg(code),
+//				ResponseData: "用户不存在,请先注册!!!",
+//			}, nil
+//		}
+//
+//		// 校验密码
+//		if !user.CheckPassword(in.Password) {
+//			code = e.ErrorNotCompare
+//			return &pb.CommonResponse{
+//				StatusCode:   int64(code),
+//				Message:      e.GetMsg(code),
+//				ResponseData: "密码错误,请重新输入密码!!!",
+//			}, nil
+//		}
+//
+//		// Token签发
+//		token, err := util.GenerateToken(user.ID, in.UserName, 0)
+//		if err != nil {
+//			code = e.ErrorAuthToken
+//			return &pb.CommonResponse{
+//				StatusCode:   int64(code),
+//				Message:      e.GetMsg(code),
+//				ResponseData: "Token签发失败!!",
+//			}, nil
+//		}
+//		// 将User结构体转换为map[string]interface{}
+//		builtUser := serializer.BuildUser(user)
+//		userMap := map[string]interface{}{
+//			"ID":       builtUser.ID,
+//			"UserName": builtUser.UserName,
+//			"NickName": builtUser.NickName,
+//			"Email":    builtUser.Email,
+//			"Status":   builtUser.Status,
+//			"Avatar":   builtUser.Avatar,
+//			"CreateAt": builtUser.CreateAt,
+//		}
+//
+//		// 将数据转换为google.protobuf.Struct
+//		dataMap := map[string]interface{}{
+//			"User":  userMap,
+//			"Token": token,
+//		}
+//		spb, err := structpb.NewStruct(dataMap)
+//		if err != nil {
+//			log.Fatal("Failed to convert struct to google.protobuf.Struct: ", err)
+//		}
+//
+//		return &pb.CommonResponse{
+//			StatusCode:       int64(code),
+//			Message:          e.GetMsg(code),
+//			ResponseDataJson: spb.MarshalJSON(),
+//			//ResponseData:
+//		}, nil
+//	}
 func (service *Server) UserLogin(ctx context.Context, in *pb.UserRegisterRequest) (*pb.CommonResponse, error) {
 	var user *model.User
 	code := e.Success
 	userDao := dao.NewUserDao(ctx)
-	//判断用户是否存在
+
+	// 判断用户是否存在
 	user, exist, err := userDao.ExistOrNotByUserName(in.UserName)
-	if !exist || err != nil { // 如果查询不到，返回相应的错误
+	if err != nil {
+		code = e.ErrorDatabase
+		return &pb.CommonResponse{
+			StatusCode:   int64(code),
+			Message:      e.GetMsg(code),
+			ResponseData: "数据库查询错误",
+		}, nil
+	}
+	if !exist {
 		code = e.ErrorExistUserNotFound
 		return &pb.CommonResponse{
 			StatusCode:   int64(code),
@@ -89,8 +172,9 @@ func (service *Server) UserLogin(ctx context.Context, in *pb.UserRegisterRequest
 			ResponseData: "用户不存在,请先注册!!!",
 		}, nil
 	}
-	//校验密码
-	if user.CheckPassword(in.Password) == false {
+
+	// 校验密码
+	if !user.CheckPassword(in.Password) {
 		code = e.ErrorNotCompare
 		return &pb.CommonResponse{
 			StatusCode:   int64(code),
@@ -98,8 +182,8 @@ func (service *Server) UserLogin(ctx context.Context, in *pb.UserRegisterRequest
 			ResponseData: "密码错误,请重新输入密码!!!",
 		}, nil
 	}
-	//http 无状态(服务器需要token来认证)
-	//Token签发
+
+	// Token签发
 	token, err := util.GenerateToken(user.ID, in.UserName, 0)
 	if err != nil {
 		code = e.ErrorAuthToken
@@ -109,24 +193,118 @@ func (service *Server) UserLogin(ctx context.Context, in *pb.UserRegisterRequest
 			ResponseData: "Token签发失败!!",
 		}, nil
 	}
-	p := serializer.TokenData{User: serializer.BuildUser(user), Token: token}
-	// 将结构体转换为JSON字符串
-	jsonString, err := json.Marshal(p)
-	if err != nil {
-		log.Fatal("JSON marshaling failed: ", err)
+
+	// 将User结构体转换为map[string]interface{}
+	builtUser := serializer.BuildUser(user)
+	userMap := map[string]interface{}{
+		"ID":       builtUser.ID,
+		"UserName": builtUser.UserName,
+		"NickName": builtUser.NickName,
+		"Email":    builtUser.Email,
+		"Status":   builtUser.Status,
+		"Avatar":   builtUser.Avatar,
+		"CreateAt": builtUser.CreateAt,
 	}
+
+	// 将数据转换为google.protobuf.Struct
 	dataMap := map[string]interface{}{
-		"User":  serializer.BuildUser(user),
+		"User":  userMap,
 		"Token": token,
 	}
 	spb, err := structpb.NewStruct(dataMap)
 	if err != nil {
-		log.Fatal("Failed to convert struct to google.protobuf.Struct: ", err)
+		// 使用日志记录错误，而不是终止程序
+		log.Printf("Failed to convert struct to google.protobuf.Struct: %v", err)
+		code = 500
+		return &pb.CommonResponse{
+			StatusCode:   int64(code),
+			Message:      e.GetMsg(code),
+			ResponseData: "内部错误",
+		}, nil
 	}
+
+	// 返回CommonResponse，包含protobuf.Struct类型的数据
 	return &pb.CommonResponse{
 		StatusCode:       int64(code),
 		Message:          e.GetMsg(code),
-		ResponseDataJson: spb,
-		ResponseData:     string(jsonString),
+		ResponseDataJson: spb, // 直接使用spb作为响应数据
 	}, nil
 }
+
+//func (service *Server) UserLogin(ctx context.Context, in *pb.UserRegisterRequest) (*pb.CommonResponse, error) {
+//	var user *model.User
+//	code := e.Success
+//	userDao := dao.NewUserDao(ctx)
+//	//判断用户是否存在
+//	user, exist, err := userDao.ExistOrNotByUserName(in.UserName)
+//	if !exist || err != nil { // 如果查询不到，返回相应的错误
+//		code = e.ErrorExistUserNotFound
+//		return &pb.CommonResponse{
+//			StatusCode:   int64(code),
+//			Message:      e.GetMsg(code),
+//			ResponseData: "用户不存在,请先注册!!!",
+//		}, nil
+//	}
+//	//校验密码
+//	if user.CheckPassword(in.Password) == false {
+//		code = e.ErrorNotCompare
+//		return &pb.CommonResponse{
+//			StatusCode:   int64(code),
+//			Message:      e.GetMsg(code),
+//			ResponseData: "密码错误,请重新输入密码!!!",
+//		}, nil
+//	}
+//	//http 无状态(服务器需要token来认证)
+//	//Token签发
+//	token, err := util.GenerateToken(user.ID, in.UserName, 0)
+//	if err != nil {
+//		code = e.ErrorAuthToken
+//		return &pb.CommonResponse{
+//			StatusCode:   int64(code),
+//			Message:      e.GetMsg(code),
+//			ResponseData: "Token签发失败!!",
+//		}, nil
+//	}
+//	p := serializer.TokenData{User: serializer.BuildUser(user), Token: token}
+//	// 将结构体转换为JSON字符串
+//	jsonString, err := json.Marshal(p)
+//	if err != nil {
+//		log.Fatal("JSON marshaling failed: ", err)
+//	}
+//	dataMap := make(map[string]interface{})
+//	value := reflect.ValueOf(p)
+//	for i := 0; i < value.NumField(); i++ {
+//		fieldName := value.Type().Field(i).Name
+//		fieldValue := value.Field(i).Interface()
+//		dataMap[fieldName] = fieldValue
+//	}
+//	dataMap = map[string]interface{}{
+//		"User":  serializer.BuildUser(user),
+//		"Token": token,
+//	}
+//	spb, err := structpb.NewStruct(dataMap)
+//	if err != nil {
+//		log.Fatal("Failed to convert struct to google.protobuf.Struct: ", err)
+//	}
+//	//p := serializer.TokenData{User: serializer.BuildUser(user), Token: token}
+//	//// 将结构体转换为map[string]interface{}
+//	//dataMap := make(map[string]interface{})
+//	//value := reflect.ValueOf(p)
+//	//for i := 0; i < value.NumField(); i++ {
+//	//	fieldName := value.Type().Field(i).Name
+//	//	fieldValue := value.Field(i).Interface()
+//	//	dataMap[fieldName] = fieldValue
+//	//}
+//	//// 将map[string]interface{}转换为google.protobuf.Struct
+//	//spb, err := structpb.NewStruct(dataMap)
+//	//if err != nil {
+//	//	log.Fatal("Failed to convert struct to google.protobuf.Struct: ", err)
+//	//}
+//	//}
+//	return &pb.CommonResponse{
+//		StatusCode:       int64(code),
+//		Message:          e.GetMsg(code),
+//		ResponseDataJson: spb,
+//		ResponseData:     string(jsonString),
+//	}, nil
+//}
