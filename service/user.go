@@ -5,6 +5,7 @@ import (
 	pb "github.com/piklen/pb/user"
 	"google.golang.org/protobuf/types/known/structpb"
 	"log"
+	"strconv"
 	"user/dao"
 	"user/model"
 	"user/pkg/e"
@@ -146,7 +147,6 @@ func (service *Server) UserLogin(ctx context.Context, in *pb.UserRegisterRequest
 			ResponseData: "内部错误",
 		}, nil
 	}
-
 	// 返回CommonResponse，包含protobuf.Struct类型的数据
 	return &pb.CommonResponse{
 		StatusCode:       int64(code),
@@ -154,3 +154,59 @@ func (service *Server) UserLogin(ctx context.Context, in *pb.UserRegisterRequest
 		ResponseDataJson: spb, // 直接使用spb作为响应数据
 	}, nil
 }
+func (s *Server) UpdateNickName(ctx context.Context, in *pb.UpdateNickNameRequest) (*pb.CommonResponse, error) {
+	var user *model.User
+	var err error
+	code := e.Success
+	// 找到用户
+	userDao := dao.NewUserDao(ctx)
+	userId, err := strconv.Atoi(in.UserId)
+	user, err = userDao.GetUserById(uint(userId))
+	if err != nil {
+		code = e.Error
+		return &pb.CommonResponse{
+			StatusCode:   int64(code),
+			Message:      e.GetMsg(code),
+			ResponseData: "找不到该user_id!!!",
+		}, nil
+	}
+	//修改昵称Nickname
+	if in.NickName != "" {
+		user.NickName = in.NickName
+	}
+	err = userDao.UpdateUserById(uint(userId), user)
+	if err != nil {
+		code = e.Error
+		return &pb.CommonResponse{
+			StatusCode:   int64(code),
+			Message:      e.GetMsg(code),
+			ResponseData: "修改数据库昵称错误！！！",
+		}, nil
+	}
+	// 将User结构体转换为map[string]interface{}
+	builtUser := serializer.BuildUser(user)
+	userMap := map[string]interface{}{
+		"ID":       builtUser.ID,
+		"UserName": builtUser.UserName,
+		"NickName": builtUser.NickName,
+		"Email":    builtUser.Email,
+		"Status":   builtUser.Status,
+		"Avatar":   builtUser.Avatar,
+		"CreateAt": builtUser.CreateAt,
+	}
+	// 将数据转换为google.protobuf.Struct
+	dataMap := map[string]interface{}{
+		"User": userMap,
+	}
+	spb, err := structpb.NewStruct(dataMap)
+	return &pb.CommonResponse{
+		StatusCode:       int64(code),
+		Message:          e.GetMsg(code),
+		ResponseDataJson: spb, // 直接使用spb作为响应数据
+		ResponseData:     "修改昵称成功！！！",
+	}, nil
+}
+
+//func (s *Server) UpdateNickName(ctx context.Context, in *pb.UserRegisterRequest) (*pb.CommonResponse, error) {
+//
+//}

@@ -18,7 +18,7 @@ func main() {
 		return
 	}
 	s := grpc.NewServer()                              // 创建gRPC服务器
-	pb.RegisterUserServiceServer(s, &service.Server{}) // 在gRPC服务端注册服务
+	pb.RegisterUserServiceServer(s, &service.Server{}) // 在gRPC服务端注册user服务
 	fmt.Printf("创建gRPC服务器")
 	err = s.Serve(lis)
 	if err != nil {
