@@ -3,6 +3,7 @@ package main
 import (
 	"fmt"
 	pb "github.com/piklen/pb/user"
+	"user/cache"
 
 	"google.golang.org/grpc"
 	"net"
@@ -17,6 +18,10 @@ const (
 
 func main() {
 	conf.Init()
+	cache.InitCache()
+	// 添加日志输出以确认RedisClient是否已初始化
+	fmt.Printf("RedisClient: %v\n", cache.RedisClient)
+	fmt.Printf("RedisClient.Client: %v\n", cache.RedisClient.Client)
 	lis, err := net.Listen("tcp", ":8972")
 	if err != nil {
 		fmt.Printf("failed to listen: %v", err)

@@ -34,12 +34,6 @@ var (
 	PhotoHost   string
 
 	ProductPhotoPath string
-
-	RabbitMQ         string
-	RabbitMQUser     string
-	RabbitMQPassWord string
-	RabbitMQHost     string
-	RabbitMQPort     string
 )
 
 func Init() {
@@ -53,7 +47,6 @@ func Init() {
 	LoadingRedis(file)
 	LoadingEmail(file)
 	LoadingPhotoPath(file)
-	LoadRabbitMQ(file)
 	//mysql读
 	pathRead := strings.Join([]string{DbUser, ":", DbPassword, "@tcp(", DbHost, ":", DbPort, ")/", DbName, "?charset=utf8mb4&parseTime=true&loc=Local"}, "")
 	//MySQL写
@@ -92,11 +85,4 @@ func LoadingPhotoPath(file *ini.File) {
 	AvatarPath = file.Section("path").Key("AvatarPath").String()
 	PhotoHost = file.Section("path").Key("PhotoHost").String()
 	HttpPort = file.Section("path").Key("HttpPort").String()
-}
-func LoadRabbitMQ(file *ini.File) {
-	RabbitMQ = file.Section("rabbitmq").Key("RabbitMQ").String()
-	RabbitMQUser = file.Section("rabbitmq").Key("RabbitMQUser").String()
-	RabbitMQPassWord = file.Section("rabbitmq").Key("RabbitMQPassWord").String()
-	RabbitMQHost = file.Section("rabbitmq").Key("RabbitMQHost").String()
-	RabbitMQPort = file.Section("rabbitmq").Key("RabbitMQPort").String()
 }

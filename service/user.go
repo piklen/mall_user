@@ -10,6 +10,7 @@ import (
 	"strconv"
 	"strings"
 	"time"
+	"user/cache"
 	"user/conf"
 	"user/dao"
 	"user/model"
@@ -299,6 +300,77 @@ func (s *Server) SendEmail(ctx context.Context, in *pb.SendEmailRequest) (*pb.Co
 		StatusCode:   int64(code),
 		Message:      e.GetMsg(code),
 		ResponseData: "发送邮件成功！！！",
+	}, nil
+}
+
+// 发送验证码
+func (s *Server) SendCode(ctx context.Context, in *pb.SendCodeRequest) (*pb.CommonResponse, error) {
+	code := e.Success
+	var address string
+	var notice *model.Notice //绑定邮箱,修改密码都有模板通知
+	userId, err := strconv.Atoi(in.UserId)
+	operationType, err := strconv.Atoi(in.OperationType)
+	//先验证密码是否正确，因为这里不是注册新用户，所以用户一定有密码
+	userDao := dao.NewUserDao(ctx)
+	user, err := userDao.GetUserById(uint(userId))
+	// 校验密码
+	if !user.CheckPassword(in.Password) {
+		code = e.ErrorNotCompare
+		return &pb.CommonResponse{
+			StatusCode:   int64(code),
+			Message:      e.GetMsg(code),
+			ResponseData: "密码错误,请重新输入密码!!!",
+		}, nil
+	}
+	//生成验证码
+	verificationCode := util.GenerateCode()
+
+	//redisClient := cache.RedisClient.Client
+	//err = redisClient.HSet(user.UserName, in.UserId, verificationCode).Err()
+	//err = redisClient.Set(in.UserId, verificationCode, 5*time.Minute).Err()
+
+	//将验证码与userId存入Redis中,并且设置过期时间
+	if err := cache.SetHashFieldWithExpiration(user.UserName, in.UserId, verificationCode, 5*time.Minute); err != nil {
+		code = e.Error
+		return &pb.CommonResponse{
+			StatusCode:   int64(code),
+			Message:      e.GetMsg(code),
+			ResponseData: "验证码写入Redis缓存失败！！！！",
+		}, nil
+	}
+	noticeDao := dao.NewNoticeDao(ctx)
+	notice, err = noticeDao.GetNoticeById(uint(operationType))
+	if err != nil {
+		code = e.Error
+		return &pb.CommonResponse{
+			StatusCode:   int64(code),
+			Message:      e.GetMsg(code),
+			ResponseData: "获取notice类型失败！！！",
+		}, nil
+	}
+	address = verificationCode //发送方
+	mailStr := notice.Text
+	mailText := strings.Replace(mailStr, "Email", address, -1) //字符串替换
+	m := mail.NewMessage()
+	m.SetHeader("From", conf.SmtpEmail)
+	m.SetHeader("To", in.Email)
+	m.SetHeader("Subject", "mall商城验证码")
+	m.SetBody("text/html", mailText)
+	d := mail.NewDialer(conf.SmtpHost, 465, conf.SmtpEmail, conf.SmtpPass)
+	d.StartTLSPolicy = mail.MandatoryStartTLS
+	if err := d.DialAndSend(m); err != nil {
+		code = e.ErrorSendEmail
+		fmt.Println("err", err)
+		return &pb.CommonResponse{
+			StatusCode:   int64(code),
+			Message:      e.GetMsg(code),
+			ResponseData: "发送邮件失败！！！！",
+		}, nil
+	}
+	return &pb.CommonResponse{
+		StatusCode:   int64(code),
+		Message:      e.GetMsg(code),
+		ResponseData: "发送验证码邮件成功！！！",
 	}, nil
 }
 
