@@ -1,12 +1,8 @@
 package model
 
-import (
-	"github.com/jinzhu/gorm"
-)
-
 // 商品模型
 type Product struct {
-	gorm.Model
+	Model
 	Name          string `gorm:"size:255;index"`
 	CategoryID    uint   `gorm:"not null"`
 	Title         string

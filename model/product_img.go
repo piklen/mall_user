@@ -1,9 +1,7 @@
 package model
 
-import "gorm.io/gorm"
-
 type ProductImg struct {
-	gorm.Model
+	Model
 	ProductID uint `gorm:"not null"`
 	ImgPath   string
 }

@@ -1,7 +1,7 @@
 package serializer
 
 import (
-	"user/conf"
+	"time"
 	"user/model"
 )
 
@@ -17,14 +17,15 @@ type User struct {
 }
 
 // BuildUser 序列化用户
-func BuildUser(user *model.User) *User {
-	return &User{
-		ID:       user.ID,
-		UserName: user.UserName,
-		NickName: user.NickName,
-		Email:    user.Email,
-		Status:   user.Status,
-		Avatar:   conf.Host + conf.HttpPort + conf.AvatarPath + user.Avatar,
-		CreateAt: user.CreatedAt.Unix(),
+func BuildUser(user *model.User) map[string]interface{} {
+	return map[string]interface{}{
+		"ID":       user.ID,
+		"UserName": user.UserName,
+		"NickName": user.NickName,
+		"Email":    user.Email,
+		"Status":   user.Status,
+		"Avatar":   user.Avatar,
+		"CreateAt": user.CreatedAt.Format(time.DateTime),
+		"UpdateAt": user.UpdatedAt.Format(time.DateTime),
 	}
 }

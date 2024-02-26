@@ -1,10 +1,8 @@
 package model
 
-import "gorm.io/gorm"
-
 // Cart 购物车
 type Cart struct {
-	gorm.Model
+	Model
 	UserId    uint `gorm:"not null"`
 	ProductId uint `gorm:"not null"`
 	BossId    uint `gorm:"not null"`

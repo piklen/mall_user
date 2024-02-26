@@ -1,13 +1,12 @@
 package model
 
 import (
-	"github.com/jinzhu/gorm"
 	"golang.org/x/crypto/bcrypt"
 )
 
 // User 用户模型
 type BatchUser struct {
-	gorm.Model
+	Model
 	UserName       string `gorm:"unique"`
 	Email          string
 	PasswordDigest string

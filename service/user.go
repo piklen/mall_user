@@ -120,17 +120,7 @@ func (service *Server) UserLogin(ctx context.Context, in *pb.UserRegisterRequest
 	}
 
 	// 将User结构体转换为map[string]interface{}
-	builtUser := serializer.BuildUser(user)
-	userMap := map[string]interface{}{
-		"ID":       builtUser.ID,
-		"UserName": builtUser.UserName,
-		"NickName": builtUser.NickName,
-		"Email":    builtUser.Email,
-		"Status":   builtUser.Status,
-		"Avatar":   builtUser.Avatar,
-		"CreateAt": builtUser.CreateAt,
-	}
-
+	userMap := serializer.BuildUser(user)
 	// 将数据转换为google.protobuf.Struct
 	dataMap := map[string]interface{}{
 		"User":  userMap,
@@ -184,16 +174,7 @@ func (s *Server) UpdateNickName(ctx context.Context, in *pb.UpdateNickNameReques
 		}, nil
 	}
 	// 将User结构体转换为map[string]interface{}
-	builtUser := serializer.BuildUser(user)
-	userMap := map[string]interface{}{
-		"ID":       builtUser.ID,
-		"UserName": builtUser.UserName,
-		"NickName": builtUser.NickName,
-		"Email":    builtUser.Email,
-		"Status":   builtUser.Status,
-		"Avatar":   builtUser.Avatar,
-		"CreateAt": builtUser.CreateAt,
-	}
+	userMap := serializer.BuildUser(user)
 	// 将数据转换为google.protobuf.Struct
 	dataMap := map[string]interface{}{
 		"User": userMap,
@@ -207,6 +188,59 @@ func (s *Server) UpdateNickName(ctx context.Context, in *pb.UpdateNickNameReques
 	}, nil
 }
 
-//func (s *Server) UpdateNickName(ctx context.Context, in *pb.UserRegisterRequest) (*pb.CommonResponse, error) {
-//
-//}
+// PostAvatar 头像更新
+func (s *Server) UploadAvatar(ctx context.Context, in *pb.UploadAvatarRequest) (*pb.CommonResponse, error) {
+	code := e.Success
+	var user *model.User
+	var err error
+	userDao := dao.NewUserDao(ctx)
+	userId, err := strconv.Atoi(in.UserId)
+	if err != nil {
+		return &pb.CommonResponse{
+			StatusCode:   int64(500),
+			Message:      e.GetMsg(code),
+			ResponseData: "userId非法！！！！",
+		}, nil
+	}
+	user, err = userDao.GetUserById(uint(userId))
+	if err != nil {
+		return &pb.CommonResponse{
+			StatusCode:   int64(500),
+			Message:      e.GetMsg(code),
+			ResponseData: "数据库查询userId错误！！！",
+		}, nil
+	}
+	//保存图片到本地
+	path, err := UploadAvatarToLocalStatic(in.FileData, in.UserId, user.UserName)
+	if err != nil {
+		code = e.ErrorUploadAvatar
+		return &pb.CommonResponse{
+			StatusCode:   int64(code),
+			Message:      e.GetMsg(code),
+			ResponseData: "用户头像保存到本地失败！！！",
+		}, nil
+	}
+	user.Avatar = path
+	err = userDao.UpdateUserById(uint(userId), user)
+	if err != nil {
+		code = e.Error
+		return &pb.CommonResponse{
+			StatusCode:   int64(500),
+			Message:      e.GetMsg(code),
+			ResponseData: "更新用户数据失败！！！",
+		}, nil
+	}
+	// 将User结构体转换为map[string]interface{}
+	userMap := serializer.BuildUser(user)
+	// 将数据转换为google.protobuf.Struct
+	dataMap := map[string]interface{}{
+		"User": userMap,
+	}
+	spb, err := structpb.NewStruct(dataMap)
+	return &pb.CommonResponse{
+		StatusCode:       int64(code),
+		Message:          e.GetMsg(code),
+		ResponseDataJson: spb, // 直接使用spb作为响应数据
+		ResponseData:     "上传头像成功！！！！",
+	}, nil
+}

@@ -1,10 +1,8 @@
 package model
 
-import "gorm.io/gorm"
-
 // Favorite 收藏夹
 type Favorite struct {
-	gorm.Model
+	Model
 	User      User    `gorm:"ForeignKey:UserId"`
 	UserId    uint    `gorm:"not null"`
 	Product   Product `gorm:"ForeignKey:ProductId"`

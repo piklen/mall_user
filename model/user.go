@@ -2,12 +2,11 @@ package model
 
 import (
 	"golang.org/x/crypto/bcrypt"
-	"gorm.io/gorm"
 )
 
 // User 用户模型
 type User struct {
-	gorm.Model
+	Model
 	UserName       string `gorm:"unique"`
 	Email          string
 	PasswordDigest string

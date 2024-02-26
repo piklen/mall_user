@@ -91,6 +91,7 @@ func LoadingPhotoPath(file *ini.File) {
 	ProductPhotoPath = file.Section("path").Key("ProductPath").String()
 	AvatarPath = file.Section("path").Key("AvatarPath").String()
 	PhotoHost = file.Section("path").Key("PhotoHost").String()
+	HttpPort = file.Section("path").Key("HttpPort").String()
 }
 func LoadRabbitMQ(file *ini.File) {
 	RabbitMQ = file.Section("rabbitmq").Key("RabbitMQ").String()

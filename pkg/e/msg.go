@@ -18,6 +18,7 @@ var MsgFlags = map[int]string{
 	ErrorProductExistCart:      "商品已经在购物车了，数量+1",
 	ErrorProductMoreCart:       "超过最大上限",
 	ErrorSetKey:                "Key设置错误",
+	ErrorUploadAvatar:          "头像上传错误！！！",
 }
 
 // GetMsg 获取状态码对应信息

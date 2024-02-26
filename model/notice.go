@@ -1,8 +1,6 @@
 package model
 
-import "gorm.io/gorm"
-
 type Notice struct {
-	gorm.Model
+	Model
 	Text string `gorm:"type:text"`
 }

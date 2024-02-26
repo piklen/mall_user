@@ -14,6 +14,7 @@ const (
 	ErrorUploadFile            = 30007
 	ErrorSendEmail             = 30008
 	ErrorSetKey                = 30009
+	ErrorUploadAvatar          = 30010
 	//product 模块错误
 	ErrorProductImgUpload = 40001
 	ErrorDatabase         = 40002
