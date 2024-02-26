@@ -6,7 +6,7 @@ require (
 	github.com/dgrijalva/jwt-go v3.2.0+incompatible
 	github.com/gin-gonic/gin v1.9.1
 	github.com/jinzhu/gorm v1.9.16
-	github.com/piklen/pb v0.1.10
+	github.com/piklen/pb v0.1.11
 	github.com/sirupsen/logrus v1.9.3
 	golang.org/x/crypto v0.19.0
 	google.golang.org/grpc v1.61.1

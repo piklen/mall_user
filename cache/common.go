@@ -39,6 +39,11 @@ func Redis() {
 	}
 }
 func SetHashFieldWithExpiration(key string, field string, value interface{}, expiration time.Duration) error {
+	oldValue, _ := RedisClient.Client.HGet(key, field).Result()
+	//如果可以查到值，说明是老的值
+	if oldValue != "" {
+		_, _ = RedisClient.Client.HDel(key, field).Result()
+	}
 	// 设置哈希表中的字段
 	if err := RedisClient.Client.HSet(key, field, value).Err(); err != nil {
 		return err

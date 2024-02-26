@@ -462,3 +462,83 @@ func (s *Server) ValidEmail(ctx context.Context, in *pb.ValidEmailRequest) (*pb.
 		ResponseData:     "验证邮箱成功！！！",
 	}, nil
 }
+
+// VerifyCode 验证邮箱
+func (s *Server) VerifyCode(ctx context.Context, in *pb.VerifyCodeRequest) (*pb.CommonResponse, error) {
+	var userID uint
+	code := e.Success
+	//先解析token,拿到username和userId再去校验验证码
+	claims, err := util.ParseEmailToken(in.Token)
+	if err != nil {
+		//如果解析token错误就返回错误
+		code = e.ErrorAuthToken
+		return &pb.CommonResponse{
+			StatusCode:   int64(code),
+			Message:      e.GetMsg(code),
+			ResponseData: "发生错误！！！",
+		}, nil
+	}
+	userID = claims.UserID
+	// 获取该用户信息
+	userDao := dao.NewUserDao(ctx)
+	user, err := userDao.GetUserById(userID)
+	if err != nil {
+		code = e.Error
+		return &pb.CommonResponse{
+			StatusCode:   int64(code),
+			Message:      e.GetMsg(code),
+			ResponseData: "验证验证码时，在获取用户信息时失败！！！",
+		}, nil
+	}
+	//提取缓存中的验证码
+	codeValue, _ := cache.RedisClient.Client.HGet(user.UserName, strconv.Itoa(int(userID))).Result()
+	if codeValue != in.Code {
+		code = e.Error
+		return &pb.CommonResponse{
+			StatusCode:   int64(code),
+			Message:      e.GetMsg(code),
+			ResponseData: "验证码错误！！！",
+		}, nil
+	}
+	if in.OperationType == "1" {
+		// 1:绑定邮箱
+		user.Email = in.Email
+	} else if in.OperationType == "2" {
+		// 2：解绑邮箱
+		user.Email = ""
+	} else if in.OperationType == "3" {
+		// 3：修改密码
+		err = user.SetPassword(in.Password)
+		if err != nil {
+			code = e.Error
+			return &pb.CommonResponse{
+				StatusCode:   int64(code),
+				Message:      e.GetMsg(code),
+				ResponseData: "更改用户密码错误！！！",
+			}, nil
+		}
+	}
+	err = userDao.UpdateUserById(userID, user)
+	if err != nil {
+		code = e.Error
+		return &pb.CommonResponse{
+			StatusCode:   int64(code),
+			Message:      e.GetMsg(code),
+			ResponseData: "更新用户信息时发生错误！！！",
+		}, nil
+	}
+	// 成功则返回用户的信息
+	// 将User结构体转换为map[string]interface{}
+	userMap := serializer.BuildUser(user)
+	// 将数据转换为google.protobuf.Struct
+	dataMap := map[string]interface{}{
+		"User": userMap,
+	}
+	spb, err := structpb.NewStruct(dataMap)
+	return &pb.CommonResponse{
+		StatusCode:       int64(code),
+		Message:          e.GetMsg(code),
+		ResponseDataJson: spb, // 直接使用spb作为响应数据
+		ResponseData:     "验证码验证成功！！！",
+	}, nil
+}
