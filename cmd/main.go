@@ -28,7 +28,7 @@ func main() {
 		grpc.MaxSendMsgSize(maxMsgSize),
 	) // 创建gRPC服务器
 	pb.RegisterUserServiceServer(s, &service.Server{}) // 在gRPC服务端注册user服务
-	fmt.Printf("创建gRPC服务器")
+	fmt.Printf("创建gRPC服务器成功！！！！")
 	err = s.Serve(lis)
 	if err != nil {
 		fmt.Printf("failed to serve: %v", err)

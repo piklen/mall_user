@@ -2,10 +2,14 @@ package service
 
 import (
 	"context"
+	"fmt"
 	pb "github.com/piklen/pb/user"
 	"google.golang.org/protobuf/types/known/structpb"
+	"gopkg.in/mail.v2"
 	"log"
 	"strconv"
+	"strings"
+	"user/conf"
 	"user/dao"
 	"user/model"
 	"user/pkg/e"
@@ -188,7 +192,7 @@ func (s *Server) UpdateNickName(ctx context.Context, in *pb.UpdateNickNameReques
 	}, nil
 }
 
-// PostAvatar 头像更新
+// UploadAvatar 头像更新
 func (s *Server) UploadAvatar(ctx context.Context, in *pb.UploadAvatarRequest) (*pb.CommonResponse, error) {
 	code := e.Success
 	var user *model.User
@@ -242,5 +246,57 @@ func (s *Server) UploadAvatar(ctx context.Context, in *pb.UploadAvatarRequest) (
 		Message:          e.GetMsg(code),
 		ResponseDataJson: spb, // 直接使用spb作为响应数据
 		ResponseData:     "上传头像成功！！！！",
+	}, nil
+}
+
+// SendEmail 发送邮件
+func (s *Server) SendEmail(ctx context.Context, in *pb.SendEmailRequest) (*pb.CommonResponse, error) {
+	code := e.Success
+	var address string
+	var notice *model.Notice //绑定邮箱,修改密码都有模板通知
+	userId, err := strconv.Atoi(in.UserId)
+	operationType, err := strconv.Atoi(in.OperationType)
+	token, err := util.GenerateEmailToken(uint(userId), uint(operationType), in.Email, in.Password)
+	if err != nil {
+		code = e.ErrorAuthToken
+		return &pb.CommonResponse{
+			StatusCode:   int64(code),
+			Message:      e.GetMsg(code),
+			ResponseData: "签发邮箱验证Token！！！",
+		}, nil
+	}
+	noticeDao := dao.NewNoticeDao(ctx)
+	notice, err = noticeDao.GetNoticeById(uint(operationType))
+	if err != nil {
+		code = e.Error
+		return &pb.CommonResponse{
+			StatusCode:   int64(code),
+			Message:      e.GetMsg(code),
+			ResponseData: "获取notice类型失败！！！",
+		}, nil
+	}
+	address = conf.ValidEmail + token //发送方
+	mailStr := notice.Text
+	mailText := strings.Replace(mailStr, "Email", address, -1) //字符串替换
+	m := mail.NewMessage()
+	m.SetHeader("From", conf.SmtpEmail)
+	m.SetHeader("To", in.Email)
+	m.SetHeader("Subject", "xiaobao")
+	m.SetBody("text/html", mailText)
+	d := mail.NewDialer(conf.SmtpHost, 465, conf.SmtpEmail, conf.SmtpPass)
+	d.StartTLSPolicy = mail.MandatoryStartTLS
+	if err := d.DialAndSend(m); err != nil {
+		code = e.ErrorSendEmail
+		fmt.Println("err", err)
+		return &pb.CommonResponse{
+			StatusCode:   int64(code),
+			Message:      e.GetMsg(code),
+			ResponseData: "发送邮件失败！！！！",
+		}, nil
+	}
+	return &pb.CommonResponse{
+		StatusCode:   int64(code),
+		Message:      e.GetMsg(code),
+		ResponseData: "发送邮件成功！！！",
 	}, nil
 }
