@@ -468,7 +468,7 @@ func (s *Server) VerifyCode(ctx context.Context, in *pb.VerifyCodeRequest) (*pb.
 	var userID uint
 	code := e.Success
 	//先解析token,拿到username和userId再去校验验证码
-	claims, err := util.ParseEmailToken(in.Token)
+	claims, err := util.ParseToken(in.Token)
 	if err != nil {
 		//如果解析token错误就返回错误
 		code = e.ErrorAuthToken
@@ -478,7 +478,7 @@ func (s *Server) VerifyCode(ctx context.Context, in *pb.VerifyCodeRequest) (*pb.
 			ResponseData: "发生错误！！！",
 		}, nil
 	}
-	userID = claims.UserID
+	userID = claims.ID
 	// 获取该用户信息
 	userDao := dao.NewUserDao(ctx)
 	user, err := userDao.GetUserById(userID)
