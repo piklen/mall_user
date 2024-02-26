@@ -9,6 +9,7 @@ import (
 	"log"
 	"strconv"
 	"strings"
+	"time"
 	"user/conf"
 	"user/dao"
 	"user/model"
@@ -298,5 +299,94 @@ func (s *Server) SendEmail(ctx context.Context, in *pb.SendEmailRequest) (*pb.Co
 		StatusCode:   int64(code),
 		Message:      e.GetMsg(code),
 		ResponseData: "发送邮件成功！！！",
+	}, nil
+}
+
+// ValidEmail 验证邮箱
+func (s *Server) ValidEmail(ctx context.Context, in *pb.ValidEmailRequest) (*pb.CommonResponse, error) {
+	var userID uint
+	var email string
+	var password string
+	var operationType uint
+	code := e.Success
+
+	// 验证token
+	if in.Token == "" {
+		code = e.InvalidParams
+	} else {
+		claims, err := util.ParseEmailToken(in.Token)
+		if err != nil {
+			//如果解析token错误就返回错误
+			code = e.ErrorAuthToken
+		} else if time.Now().Unix() > claims.ExpiresAt {
+			//如果超时就返回验证时间超时
+			code = e.ErrorAuthCheckTokenTimeout
+		} else {
+			//不然就是成功了，就直接构建用户结构体
+			userID = claims.UserID
+			email = claims.Email
+			password = claims.Password
+			operationType = claims.OperationType
+		}
+	}
+	if code != e.Success {
+		return &pb.CommonResponse{
+			StatusCode:   int64(code),
+			Message:      e.GetMsg(code),
+			ResponseData: "发生错误！！！",
+		}, nil
+	}
+
+	// 获取该用户信息
+	userDao := dao.NewUserDao(ctx)
+	user, err := userDao.GetUserById(userID)
+	if err != nil {
+		code = e.Error
+		return &pb.CommonResponse{
+			StatusCode:   int64(code),
+			Message:      e.GetMsg(code),
+			ResponseData: "验证邮件时，在获取用户信息时失败！！！",
+		}, nil
+	}
+	if operationType == 1 {
+		// 1:绑定邮箱
+		user.Email = email
+	} else if operationType == 2 {
+		// 2：解绑邮箱
+		user.Email = ""
+	} else if operationType == 3 {
+		// 3：修改密码
+		err = user.SetPassword(password)
+		if err != nil {
+			code = e.Error
+			return &pb.CommonResponse{
+				StatusCode:   int64(code),
+				Message:      e.GetMsg(code),
+				ResponseData: "更改用户密码错误！！！",
+			}, nil
+		}
+	}
+	err = userDao.UpdateUserById(userID, user)
+	if err != nil {
+		code = e.Error
+		return &pb.CommonResponse{
+			StatusCode:   int64(code),
+			Message:      e.GetMsg(code),
+			ResponseData: "更新用户邮件内容时发生错误！！！",
+		}, nil
+	}
+	// 成功则返回用户的信息
+	// 将User结构体转换为map[string]interface{}
+	userMap := serializer.BuildUser(user)
+	// 将数据转换为google.protobuf.Struct
+	dataMap := map[string]interface{}{
+		"User": userMap,
+	}
+	spb, err := structpb.NewStruct(dataMap)
+	return &pb.CommonResponse{
+		StatusCode:       int64(code),
+		Message:          e.GetMsg(code),
+		ResponseDataJson: spb, // 直接使用spb作为响应数据
+		ResponseData:     "验证邮箱成功！！！",
 	}, nil
 }
