@@ -542,3 +542,34 @@ func (s *Server) VerifyCode(ctx context.Context, in *pb.VerifyCodeRequest) (*pb.
 		ResponseData:     "验证码验证成功！！！",
 	}, nil
 }
+
+// Show 展示用户金额
+func (s *Server) ShowMoney(ctx context.Context, in *pb.ShowMoneyRequest) (*pb.CommonResponse, error) {
+	code := e.Success
+	userDao := dao.NewUserDao(ctx)
+	userId, err := strconv.Atoi(in.UserId)
+	user, err := userDao.GetUserById(uint(userId))
+	if err != nil {
+		code = e.Error
+		return &pb.CommonResponse{
+			StatusCode:   int64(code),
+			Message:      e.GetMsg(code),
+			ResponseData: "更新用户信息时发生错误！！！",
+		}, nil
+	}
+	// 将User结构体转换为map[string]interface{}
+	userMap := serializer.BuildMoney(user, in.Key)
+	// 将数据转换为google.protobuf.Struct
+	dataMap := map[string]interface{}{
+		"UserID":    userMap.UserID,
+		"UserName":  user.UserName,
+		"UserMoney": userMap.UserMoney,
+	}
+	spb, err := structpb.NewStruct(dataMap)
+	return &pb.CommonResponse{
+		StatusCode:       int64(code),
+		Message:          e.GetMsg(code),
+		ResponseDataJson: spb, // 直接使用spb作为响应数据
+		ResponseData:     "展示金额成功！！！！",
+	}, nil
+}
