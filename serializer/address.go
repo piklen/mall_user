@@ -1,6 +1,9 @@
 package serializer
 
-import "user/model"
+import (
+	"time"
+	"user/model"
+)
 
 type Address struct {
 	ID       uint   `json:"id"`
@@ -9,7 +12,7 @@ type Address struct {
 	Phone    string `json:"phone"`
 	Address  string `json:"address"`
 	Seen     bool   `json:"seen"`
-	CreateAt int64  `json:"create_at"`
+	CreateAt string `json:"create_at"`
 }
 
 // 收货地址
@@ -21,7 +24,7 @@ func BuildAddress(item *model.Address) Address {
 		Phone:    item.Phone,
 		Address:  item.Address,
 		Seen:     false,
-		CreateAt: item.CreatedAt.Unix(),
+		CreateAt: item.CreatedAt.Format(time.DateTime),
 	}
 }
 
